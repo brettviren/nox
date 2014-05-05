@@ -1,0 +1,73 @@
+#+TITLE: nox - like Nix but off a bit
+
+* Introduction
+
+The [[http://nixos.org/nix/][Nix]] package manager part of NixOS provides many very features useful for the kind of package management that HEP experiments need.  These include multiple distributions residing on the same machine or user account.  Atomic upgrades, roll back, shared package installation with garbage collection, binary and built-from-source packages, strong package provenance, single rooted distributions and probably some other things I'm missing.
+However, there are a few features that cause problems for a direct adoption of Nix.
+
+The first is one which is needed to support the sharing of binary packages that are built from source.  A Nix distribution can make use of packages built by unknown individuals.  These can be used with strong knowledge that they are indeed produced from the source and build instructions that are claimed.  This does not require any trust of the (unknown) builder.  This is accomplished through hashing the "inputs" (source and build instructions) and output (binaries).  This is great, but requires one to install the package in the same location on all target systems (=/nix=) and that this location and sub-directories holding Nix packages and meta data files are not symlinks.  Depending on the nature of the target machine, my not be accommodated. For example, on a large, shared cluster or the Grid it may not be possible to have the =/nix= mount due to hardware or policy constraints.
+
+The other feature of Nix that may lead to problems is the daemon that is used to allow users to initiate new package builds and installations.  This daemon must run as root in order to change user to one of the available build users.  It also must run as root in order to manage the =/nix= areas.  There is nothing wrong, per se, with this arrangement but it does require special dispensation in some clusters and may be completely against policy in others.  This problem is largely mitigated in some cases as the daemon can run on a special host that does not need to follow the general cluster policy.
+
+What =nox= is then, is an attempt to emulate some of the nice features of Nix while abandoning those that lead to the problems described above.  It focuses just on the user-level of package management that [[http://nixos.org/nix/manual/#sec-nix-env][nix-env]] provides without doing any actual building.  It assumes the binary packages are already installed in some other manner.
+
+
+* Overview of =nox=.
+
+** File System Layout 
+
+Nox places some layout policy requirements on its use.  It makes distinct two types of package areas: 
+
+- stores :: like Nix, a package store holds one directory for each built package and assumes the layout in that directory matches what might be replicated under =/usr= or =/usr/local=.  Unlike Nix, multiple stores can be employed with a path indicating precedence.
+
+- profiles :: also taken from Nix, a profile is a directory that presents a number of packages as a single root.  A profile /composes/ packages from one or more stores and is intended to be used to access the packages at run-time.
+
+** Store operations
+
+Installers build packages and populate Nox stores with the results.  They assure the installation follows nox store file system layout conventions and that the software correctly operates when its files are referenced via an arbitrary nox profile.  Nox provides operations on store with =nox-store= taking these sub commands:
+
+- =list= :: list stores and their packages
+- =survey= :: list known profiles and the packages and stores they reference
+- =gc= :: remove packages from stores that are not referenced
+
+** User operations
+
+Actual use of packages are through profiles.  A user may have multiple profile directories for multiple purposes.  As detailed below, profile directories are hierarchies of directories with symlinks to files in a package store and should not typically be modified directly.  Nox provides a command =nox-profile= top make operating on profiles easy.  It has these sub commands:
+
+ - new :: make a new profile directory
+ - list :: display a list of packages that are composed into the profile
+ - add :: add a package to a profile and any others on which it depends
+ - del :: remove a package from a profile
+ - env :: emit environment setting commands to use a profile
+
+** Developer operations
+
+One can develop on existing or new packages within the Nox system.  Development of new packages can occur following two patterns:
+
+- profile-based :: build development versions against a profile as one would any installed base.  Beyond what features the =nox-profile= command provides, Nox does not provide any special support for this mode.  In particular, if the developer decides to install file derived from the package under development into the Nox profile directory, these files are not managed by Nox.
+
+- store-based :: Nox supports a list of stores.  Developers may exploit this by creating their own store containing packages that may augment or override packages in other stores.  Developers can use the =nox-store= command to mange stores populated by installing their development packages.
+
+
+* Nox internals
+
+The implementation of Nox is very much taken from how Nix does things.  Not much innovation going on here.
+
+** Stores
+
+A Nox store is a directory that contains one or more sub directories (or symlinks), one for each package installation.  The directory name is used as an identifier.
+
+** Profiles
+
+A profile is a directory (or a symlink to one) that presents a single-root file system of aggregated packages.  The aggregation is performed by a logical OR off all included packages.  This is performed by replicating the directory structure of each package and populating it with symlinks to all files in each package.  A profile can be in the form of a symlnk to another profile which provides for Nix-style atomic upgrades and rollback.
+
+Profiles fall into three categories as determined by requirements and support provided by the Nox tools:
+
+- release :: a release profile is simply one that is known to all users, through the Nox tools.  It is typically prepared by the Nox system administrator and is immutable once created.  Users may use its contents directly or reference it as a user profile.
+
+- user :: a user may maintain their own profiles, or they may link to a release profile.  All user profiles must be located under =~/nix/profiles/= in order to allow =nox-store= to find them in order to perform garbage collection.
+
+- ad-hoc :: a profile directory may be created anywhere by a user however if it is not located by =nox-store= there is a risk that the underlying packages may be garbage collected at any time.
+
+
+
