@@ -18,9 +18,9 @@ What =nox= is then, is an attempt to emulate some of the nice features of Nix wh
 
 Nox places some layout policy requirements on its use.  It makes distinct two types of package areas: 
 
-- stores :: like Nix, a package store holds one directory for each built package and assumes the layout in that directory matches what might be replicated under =/usr= or =/usr/local=.  Unlike Nix, multiple stores can be employed with a path indicating precedence.
+- stores :: like Nix, a package store holds one directory for each built package and assumes the layout in that directory matches what might be replicated under =/usr= or =/usr/local=.  Unlike Nix, multiple stores can be employed with a path indicating precedence and, obviously, there is no requirement on a fixed =/nix/store= root.
 
-- profiles :: also taken from Nix, a profile is a directory that presents a number of packages as a single root.  A profile /composes/ packages from one or more stores and is intended to be used to access the packages at run-time.
+- profiles :: also taken from Nix, a profile is a directory that presents a number of packages as a single root.  A profile /composes/ packages from one or more stores and is intended to be used to access the packages at run-time.  Unlike Nix, a user is not limited to one profile and may even have profiles in ad-hoc (but thus volatile) locations.
 
 ** Store operations
 

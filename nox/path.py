@@ -14,7 +14,6 @@ def contents(p):
     """Return tuple of list of (dirs, files) relative to path <p>."""
     alldirs, allfiles = list(), list()
     for root, dirs, files in os.walk(p):
-        print root
         rel = os.path.relpath(root, p)
         alldirs += [os.path.join(rel, d) for d in dirs]
         allfiles += [os.path.join(rel, f) for f in files]
@@ -23,3 +22,8 @@ def contents(p):
     allfiles = [d[2:] if d.startswith('./') else d for d in allfiles]
     return (alldirs, allfiles)
 
+def package_path():
+    npp = os.environ.get('NOX_PACKAGE_PATH')
+    if not npp:
+        return
+    return npp.split(":")
