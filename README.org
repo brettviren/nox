@@ -55,7 +55,16 @@ The implementation of Nox is very much taken from how Nix does things.  Not much
 
 ** Stores
 
-A Nox store is a directory that contains one or more sub directories (or symlinks), one for each package installation.  The directory name is used as an identifier.
+A Nox store is a directory that contains one or more sub-directories each holding a package installation.  By default, relative path from the store directory to where the package files are located is used as a unique /identifier/ of the package.  Some possible examples:
+
+#+BEGIN_EXAMPLE
+/path/to/store/mypackage-1.0.0/{bin,lib,include}
+/path/to/store/mypackage/v1_0_0/{bin,lib,include}
+#+END_EXAMPLE
+
+The identifiers in these two cases are =mypackage-1.0.0= and =mypackage/v1_0_0= respectively.
+
+Nox supports an extension to these generic requirements to allow for meta data about the package to be provided in a simple text file placed in the store.  This is explained in the section [[Nox Store Configuration]]
 
 ** Profiles
 
@@ -68,6 +77,28 @@ Profiles fall into three categories as determined by requirements and support pr
 - user :: a user may maintain their own profiles, or they may link to a release profile.  All user profiles must be located under =~/nix/profiles/= in order to allow =nox-store= to find them in order to perform garbage collection.
 
 - ad-hoc :: a profile directory may be created anywhere by a user however if it is not located by =nox-store= there is a risk that the underlying packages may be garbage collected at any time.
+
+
+
+
+* Nox Store Configuration
+
+Nox provides additional features if it is given meta information about the package.  This information may include:
+
+- package name and version 
+- dependency on other package by identifier, name or along with a version constraint
+- specify any required environment settings beyond the standard ones associated with the profile
+
+This allows Nox to locate packages using name or version instead of explicit identifier.  The dependency information allows Nox to automatically satisfy these constraints by adding all dependencies when a given package is requested.
+
+** Format
+
+TBD
+
+** File locations
+
+TBD
+
 
 
 
